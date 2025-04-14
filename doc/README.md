@@ -26,7 +26,7 @@ make
 ## Çalıştırma
 
 ```sh
-./main
+./multi_user_shell
 ```
 
 ## Dosya Yapısı
