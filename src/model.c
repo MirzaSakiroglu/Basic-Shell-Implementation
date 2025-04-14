@@ -220,7 +220,6 @@ int execute_pipeline(const char *command) {
  * Aksi halde, eğer ">" operatörü varsa çıkış redirection yapılır.
  */
 int execute_command(const char *command) {
-    // Eğer pipe operatörü varsa, pipeline fonksiyonunu çağır.
     if (strchr(command, '|') != NULL) {
         return execute_pipeline(command);
     }
@@ -229,31 +228,53 @@ int execute_command(const char *command) {
     char buffer[BUF_SIZE];
     pid_t pid;
 
-    // Komut satırını değiştirmek için kopyasını oluşturuyoruz.
     char *cmd_copy = strdup(command);
     if (!cmd_copy) {
         perror("strdup error");
         return -1;
     }
 
-    // Redirection kontrolü:
-    int redirect = 0;
+    // Redirection kontrolleri
+    int redirect_out = 0, redirect_append = 0, redirect_in = 0;
     char *outfile = NULL;
-    char *redir_ptr = strstr(cmd_copy, ">");
-    if (redir_ptr) {
-        redirect = 1;
-        // '>' operatörünün bulunduğu yeri '\0' ile sonlandırıp, komut kısmını ayırıyoruz.
-        *redir_ptr = '\0';
-        redir_ptr++; // '>' karakterinin sonrasına geçiyoruz.
-        // Boşlukları atla:
-        while (*redir_ptr == ' ') {
+    char *infile = NULL;
+
+    // Output append (>>)
+    char *append_ptr = strstr(cmd_copy, ">>");
+    if (append_ptr) {
+        redirect_append = 1;
+        *append_ptr = '\0';
+        append_ptr += 2;
+        while (*append_ptr == ' ') append_ptr++;
+        outfile = append_ptr;
+        trim_whitespace(&outfile);
+    } else {
+        // Output overwrite (>)
+        char *redir_ptr = strstr(cmd_copy, ">");
+        if (redir_ptr) {
+            redirect_out = 1;
+            *redir_ptr = '\0';
             redir_ptr++;
+            while (*redir_ptr == ' ') redir_ptr++;
+            outfile = redir_ptr;
+            trim_whitespace(&outfile);
         }
-        outfile = redir_ptr;
-        // İsteğe bağlı: outfile'ın sonundaki boşlukları veya yeni satır karakterlerini temizleyin.
     }
 
-    // Komut kısmını tokenize edelim:
+    // Input redirection (<)
+    char *in_ptr = strstr(cmd_copy, "<");
+    if (in_ptr) {
+        redirect_in = 1;
+        *in_ptr = '\0';
+        in_ptr++;
+        while (*in_ptr == ' ') in_ptr++;
+        infile = in_ptr;
+        trim_whitespace(&infile);
+    }
+
+    trim_whitespace(&cmd_copy);
+
+    // Tokenize
     char *args[MAX_ARGS];
     int i = 0;
     char *token = strtok(cmd_copy, " ");
@@ -263,8 +284,7 @@ int execute_command(const char *command) {
     }
     args[i] = NULL;
 
-    // Eğer redirection yoksa, pipe oluşturup çıktıyı yakalayacağız.
-    if (!redirect) {
+    if (!redirect_out && !redirect_append && !redirect_in) {
         if (pipe(pipefd) == -1) {
             perror("pipe error");
             free(cmd_copy);
@@ -277,40 +297,66 @@ int execute_command(const char *command) {
         perror("fork error");
         free(cmd_copy);
         return -1;
-    } else if (pid == 0) {  // Çocuk süreç
-        if (redirect) {
-            int fd = open(outfile, O_WRONLY | O_CREAT | O_TRUNC, 0666);
+    } else if (pid == 0) {
+        // Çocuk süreç: redirection işlemleri
+        if (redirect_in) {
+            int fd = open(infile, O_RDONLY);
             if (fd < 0) {
-                perror("open error");
+                perror("open infile error");
                 exit(EXIT_FAILURE);
             }
-            if (dup2(fd, STDOUT_FILENO) < 0) {
-                perror("dup2 error");
+            if (dup2(fd, STDIN_FILENO) < 0) {
+                perror("dup2 infile error");
                 close(fd);
                 exit(EXIT_FAILURE);
             }
             close(fd);
+        }
+
+        if (redirect_out || redirect_append) {
+            int flags = O_WRONLY | O_CREAT;
+            if (redirect_append) {
+                flags |= O_APPEND;
+            } else {
+                flags |= O_TRUNC;
+            }
+
+            int fd = open(outfile, flags, 0666);
+            if (fd < 0) {
+                perror("open outfile error");
+                exit(EXIT_FAILURE);
+            }
+
+            if (dup2(fd, STDOUT_FILENO) < 0) {
+                perror("dup2 outfile error");
+                close(fd);
+                exit(EXIT_FAILURE);
+            }
+
+            close(fd);
         } else {
-            close(pipefd[0]); // Okuma ucunu kapat
+            // Pipe'dan çıktı al
+            close(pipefd[0]);
             if (dup2(pipefd[1], STDOUT_FILENO) < 0) {
-                perror("dup2 error");
+                perror("dup2 stdout error");
                 exit(EXIT_FAILURE);
             }
             if (dup2(pipefd[1], STDERR_FILENO) < 0) {
-                perror("dup2 error");
+                perror("dup2 stderr error");
                 exit(EXIT_FAILURE);
             }
             close(pipefd[1]);
         }
+
         execvp(args[0], args);
         perror("execvp failed");
-        free(cmd_copy);
         exit(EXIT_FAILURE);
-    } else {  // Ebeveyn süreç
+    } else {
+        // Ebeveyn süreç
         int status;
         waitpid(pid, &status, 0);
-        if (!redirect) {
-            // Redirection yoksa, pipe'dan çıktıyı oku ve view_update_terminal() ile ekrana gönder.
+
+        if (!redirect_out && !redirect_append) {
             close(pipefd[1]);
             int nbytes = read(pipefd[0], buffer, sizeof(buffer) - 1);
             if (nbytes < 0) {
@@ -321,6 +367,7 @@ int execute_command(const char *command) {
             }
             close(pipefd[0]);
         }
+
         free(cmd_copy);
         return status;
     }
