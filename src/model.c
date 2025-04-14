@@ -220,6 +220,21 @@ int execute_pipeline(const char *command) {
  * Aksi halde, eğer ">" operatörü varsa çıkış redirection yapılır.
  */
 int execute_command(const char *command) {
+
+    if (strncmp(command, "cd ", 3) == 0) {
+        char *path = strdup(command + 3);
+        if (!path) {
+            perror("strdup failed");
+            return -1;
+        }
+        trim_whitespace(&path);
+        if (chdir(path) != 0) {
+            perror("cd failed");
+        }
+        free(path);
+        return 0;
+    }
+
     if (strchr(command, '|') != NULL) {
         return execute_pipeline(command);
     }
