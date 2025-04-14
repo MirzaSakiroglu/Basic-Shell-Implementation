@@ -13,8 +13,8 @@ Bu proje, kullanıcıya basit bir terminal arayüzü sunarak sistem komutların�
 ## Örnek Komutlar
 
 ```sh
-ls -l | grep txt > dosyalar.txt
-cat < girdi.txt | sort >> sirali.txt
+echo hey > deneme.txt
+ps aux | head -n 5
 ```
 
 ## Derleme
