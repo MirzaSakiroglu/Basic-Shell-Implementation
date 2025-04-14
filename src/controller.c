@@ -76,7 +76,7 @@ void controller_handle_command(const char *command) {
     int status = execute_command(command);
     char resultMsg[256];
     snprintf(resultMsg, sizeof(resultMsg), "Running command '%s' with %d status code", command, status);
-    view_update_terminal(resultMsg);
+    //view_update_terminal(resultMsg);
 }
 void controller_handle_message(const char *message){
     if(!message){
