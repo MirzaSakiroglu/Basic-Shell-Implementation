@@ -1,0 +1,34 @@
+window {
+    background-color: #1e1e1e;
+}
+box {
+    background-color: #1e1e1e;
+}
+label {
+    color: #cccccc;
+}
+textview text {
+    background-color: #252526;
+    color: #d4d4d4;
+}
+scrolledwindow {
+    background-color: #252526;
+}
+entry {
+    background-color: #2d2d2d;
+    color: #d4d4d4;
+}
+entry placeholder {
+    color: #888888;
+}
+togglebutton {
+    background-color: #2d2d2d; /* Koyu gri arka plan */
+    color: #2d2d2d; /* Beyaz metin (daha iyi kontrast için) */
+    font-size: 12px; /* Daha küçük yazı boyutu */
+    padding: 5px; /* İç boşluk */
+    border: 1px solid #555555; /* İnce gri çerçeve */
+}
+togglebutton:checked {
+    background-color: #569cd6; /* Aktifken mavi ton */
+    color: #2d2d2d; /* Beyaz metin */
+}
