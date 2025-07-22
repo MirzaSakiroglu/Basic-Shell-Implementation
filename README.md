@@ -189,7 +189,7 @@ Or you can use pipes (**we will see in IPC**).
 - Periodically poll the shared buffer for new messages. 
   
 ---
- 
+  
 
 ### **Extensions (Optional)**  
 1. **User Identities**: Assign unique usernames/colors to message senders.  
