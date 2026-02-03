@@ -4,7 +4,7 @@ This project implements a concurrent, GUI-based terminal emulator capable of run
 
 The application is built using **C**, **GTK** for the interface, and **POSIX Shared Memory** for IPC, strictly adhering to the **Model-View-Controller (MVC)** architectural pattern.
 
-## 🚀 Key Features
+## Key Features
 
 * **GUI Terminal Interface:** A fully functional terminal window built with GTK (using widgets like `GtkTextView` and `GtkEntry`).
 * **Shell Command Execution:** Parses and executes standard shell commands (e.g., `ls`, `grep`, `cat`) by forking child processes and managing `stdin`/`stdout`/`stderr` redirection.
